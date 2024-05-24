@@ -9,6 +9,11 @@ from dynamic_network_architectures.building_blocks.unet_decoder import UNetDecod
 from dynamic_network_architectures.building_blocks.unet_residual_decoder import UNetResDecoder
 from dynamic_network_architectures.initialization.weight_init import InitWeights_He
 from dynamic_network_architectures.initialization.weight_init import init_last_bn_before_add_to_0
+
+from dynamic_network_architectures.building_blocks.unet_decoder_upsample_trilinear import UNetDecoder_Upsample_Trilinear
+from dynamic_network_architectures.building_blocks.unet_decoder_upsample_nearest import UNetDecoder_Upsample_Nearest
+
+
 from torch import nn
 from torch.nn.modules.conv import _ConvNd
 from torch.nn.modules.dropout import _DropoutNd
@@ -54,13 +59,18 @@ class PlainConvUNet(nn.Module):
                                         n_conv_per_stage, conv_bias, norm_op, norm_op_kwargs, dropout_op,
                                         dropout_op_kwargs, nonlin, nonlin_kwargs, return_skips=True,
                                         nonlin_first=nonlin_first)
-        self.decoder = UNetDecoder(self.encoder, num_classes, n_conv_per_stage_decoder, deep_supervision,
-                                   nonlin_first=nonlin_first)
+        # self.decoder = UNetDecoder(self.encoder, num_classes, n_conv_per_stage_decoder, deep_supervision, nonlin_first=nonlin_first)
+        self.decoder = UNetDecoder_Upsample_Trilinear(self.encoder, num_classes, n_conv_per_stage_decoder, deep_supervision, nonlin_first=nonlin_first)
+        # self.decoder = UNetDecoder_Upsample_Nearest(self.encoder, num_classes, n_conv_per_stage_decoder, deep_supervision, nonlin_first=nonlin_first)
 
+        # print(self.decoder)
+        
     def forward(self, x):
         skips = self.encoder(x)
-        return self.decoder(skips)
-
+        output = self.decoder(skips)
+        # output = torch.tanh(output) #arthur : added tanh for translation. TODO: add a parameter to control this 
+        return output
+    
     def compute_conv_feature_map_size(self, input_size):
         assert len(input_size) == convert_conv_op_to_dim(self.encoder.conv_op), "just give the image size without color/feature channels or " \
                                                             "batch channel. Do not give input_size=(b, c, x, y(, z)). " \
