@@ -1,7 +1,7 @@
 from setuptools import setup, find_namespace_packages
 
-setup(name='dynamic_network_architectures',
-      packages=find_namespace_packages(include=["dynamic_network_architectures", "dynamic_network_architectures.*"]),
+setup(name='dynamic_network_architectures_translation',
+      packages=find_namespace_packages(include=["dynamic_network_architectures_translation", "dynamic_network_architectures_translation.*"]),
       version='0.3.1',
       description='none',
       author='Fabian Isensee',
