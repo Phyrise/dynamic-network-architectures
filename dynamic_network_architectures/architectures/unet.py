@@ -38,7 +38,8 @@ class PlainConvUNet(nn.Module):
                  nonlin: Union[None, Type[torch.nn.Module]] = None,
                  nonlin_kwargs: dict = None,
                  deep_supervision: bool = False,
-                 nonlin_first: bool = False
+                 nonlin_first: bool = False,
+                 decoder_type: str="standard"
                  ):
         """
         nonlin_first: if True you get conv -> nonlin -> norm. Else it's conv -> norm -> nonlin
@@ -59,16 +60,19 @@ class PlainConvUNet(nn.Module):
                                         n_conv_per_stage, conv_bias, norm_op, norm_op_kwargs, dropout_op,
                                         dropout_op_kwargs, nonlin, nonlin_kwargs, return_skips=True,
                                         nonlin_first=nonlin_first)
-        self.decoder = UNetDecoder(self.encoder, num_classes, n_conv_per_stage_decoder, deep_supervision, nonlin_first=nonlin_first)
-        #self.decoder = UNetDecoder_Upsample_Trilinear(self.encoder, num_classes, n_conv_per_stage_decoder, deep_supervision, nonlin_first=nonlin_first)
-        # self.decoder = UNetDecoder_Upsample_Nearest(self.encoder, num_classes, n_conv_per_stage_decoder, deep_supervision, nonlin_first=nonlin_first)
-
-        # print(self.decoder)
+        if decoder_type == "standard":
+            self.decoder = UNetDecoder(self.encoder, num_classes, n_conv_per_stage_decoder, deep_supervision, nonlin_first=nonlin_first)
+        elif decoder_type == "trilinear":
+            self.decoder = UNetDecoder_Upsample_Trilinear(self.encoder, num_classes, n_conv_per_stage_decoder, deep_supervision, nonlin_first=nonlin_first)
+        elif decoder_type == "nearest":
+            self.decoder = UNetDecoder_Upsample_Nearest(self.encoder, num_classes, n_conv_per_stage_decoder, deep_supervision, nonlin_first=nonlin_first)
+        else:
+            raise ValueError(f"Unsupported decoder type: {decoder_type}. Choose from 'standard', 'trilinear', or 'nearest'.")
         
     def forward(self, x):
         skips = self.encoder(x)
         output = self.decoder(skips)
-        # output = torch.tanh(output) #arthur : added tanh for translation. TODO: add a parameter to control this 
+        # output = torch.tanh(output) # added tanh for translation. TODO: perform ablation study + add a parameter to control this
         return output
     
     def compute_conv_feature_map_size(self, input_size):
