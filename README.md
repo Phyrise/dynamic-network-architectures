@@ -1,4 +1,4 @@
-# dynamic-network-architectures_translation [In Progress]
+# dynamic-network-architectures_translation 
 This repository adapts the dynamic-network-architectures for image-to-image translation tasks. It is based on the original repository found at [MIC-DKFZ/dynamic-network-architectures](https://github.com/MIC-DKFZ/dynamic-network-architectures).
 
 ## Changes Made
