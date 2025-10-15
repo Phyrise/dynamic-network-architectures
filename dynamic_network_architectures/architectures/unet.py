@@ -13,6 +13,9 @@ from dynamic_network_architectures.initialization.weight_init import init_last_b
 from dynamic_network_architectures.building_blocks.unet_decoder_upsample_trilinear import UNetDecoder_Upsample_Trilinear
 from dynamic_network_architectures.building_blocks.unet_decoder_upsample_nearest import UNetDecoder_Upsample_Nearest
 
+from dynamic_network_architectures.building_blocks.unet_residual_decoder_upsample_trilinear import UNetResDecoder_Upsample_Trilinear
+
+
 
 from torch import nn
 from torch.nn.modules.conv import _ConvNd
@@ -60,6 +63,7 @@ class PlainConvUNet(nn.Module):
                                         n_conv_per_stage, conv_bias, norm_op, norm_op_kwargs, dropout_op,
                                         dropout_op_kwargs, nonlin, nonlin_kwargs, return_skips=True,
                                         nonlin_first=nonlin_first)
+        print("dynamic_network, UNet:", decoder_type)
         if decoder_type == "standard":
             self.decoder = UNetDecoder(self.encoder, num_classes, n_conv_per_stage_decoder, deep_supervision, nonlin_first=nonlin_first)
         elif decoder_type == "trilinear":
@@ -107,7 +111,8 @@ class ResidualEncoderUNet(nn.Module):
                  deep_supervision: bool = False,
                  block: Union[Type[BasicBlockD], Type[BottleneckD]] = BasicBlockD,
                  bottleneck_channels: Union[int, List[int], Tuple[int, ...]] = None,
-                 stem_channels: int = None
+                 stem_channels: int = None,
+                 decoder_type="standard"
                  ):
         super().__init__()
         if isinstance(n_blocks_per_stage, int):
@@ -125,8 +130,16 @@ class ResidualEncoderUNet(nn.Module):
                                        n_blocks_per_stage, conv_bias, norm_op, norm_op_kwargs, dropout_op,
                                        dropout_op_kwargs, nonlin, nonlin_kwargs, block, bottleneck_channels,
                                        return_skips=True, disable_default_stem=False, stem_channels=stem_channels)
-        self.decoder = UNetDecoder(self.encoder, num_classes, n_conv_per_stage_decoder, deep_supervision)
-
+        print("dynamic_network, ResidualEnc:", decoder_type)
+        if decoder_type == "standard":
+            self.decoder = UNetDecoder(self.encoder, num_classes, n_conv_per_stage_decoder, deep_supervision)
+        elif decoder_type == "trilinear":
+            self.decoder = UNetDecoder_Upsample_Trilinear(self.encoder, num_classes, n_conv_per_stage_decoder, deep_supervision)
+        elif decoder_type == "nearest":
+            self.decoder = UNetDecoder_Upsample_Nearest(self.encoder, num_classes, n_conv_per_stage_decoder, deep_supervision)
+        else:
+            raise ValueError(f"Unsupported decoder type: {decoder_type}. Choose from 'standard', 'trilinear', or 'nearest'.")
+        
     def forward(self, x):
         skips = self.encoder(x)
         return self.decoder(skips)
@@ -164,7 +177,8 @@ class ResidualUNet(nn.Module):
                  deep_supervision: bool = False,
                  block: Union[Type[BasicBlockD], Type[BottleneckD]] = BasicBlockD,
                  bottleneck_channels: Union[int, List[int], Tuple[int, ...]] = None,
-                 stem_channels: int = None
+                 stem_channels: int = None,
+                 decoder_type: str="standard"
                  ):
         super().__init__()
         if isinstance(n_blocks_per_stage, int):
@@ -182,7 +196,14 @@ class ResidualUNet(nn.Module):
                                        n_blocks_per_stage, conv_bias, norm_op, norm_op_kwargs, dropout_op,
                                        dropout_op_kwargs, nonlin, nonlin_kwargs, block, bottleneck_channels,
                                        return_skips=True, disable_default_stem=False, stem_channels=stem_channels)
-        self.decoder = UNetResDecoder(self.encoder, num_classes, n_conv_per_stage_decoder, deep_supervision)
+
+        print("dynamic_network, ResUNet:", decoder_type)
+        if decoder_type == "standard":
+            self.decoder = UNetResDecoder(self.encoder, num_classes, n_conv_per_stage_decoder, deep_supervision)
+        elif decoder_type == "trilinear":
+            self.decoder = UNetResDecoder_Upsample_Trilinear(self.encoder, num_classes, n_conv_per_stage_decoder, deep_supervision)
+        else:
+            raise ValueError(f"Unsupported decoder type: {decoder_type}. Choose from 'standard', 'trilinear'")
 
     def forward(self, x):
         skips = self.encoder(x)
