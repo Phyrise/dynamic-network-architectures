@@ -180,6 +180,7 @@ class ResidualUNet(nn.Module):
                  stem_channels: int = None,
                  decoder_type: str="standard"
                  ):
+        decoder_type = "trilinear" #hardfix for ISBI
         super().__init__()
         if isinstance(n_blocks_per_stage, int):
             n_blocks_per_stage = [n_blocks_per_stage] * n_stages
