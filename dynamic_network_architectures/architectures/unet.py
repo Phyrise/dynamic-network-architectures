@@ -178,7 +178,9 @@ class ResidualUNet(nn.Module):
                  block: Union[Type[BasicBlockD], Type[BottleneckD]] = BasicBlockD,
                  bottleneck_channels: Union[int, List[int], Tuple[int, ...]] = None,
                  stem_channels: int = None,
-                 decoder_type: str="standard"
+                 decoder_type: str="standard",
+                 output_activation=None,
+                 output_range = None
                  ):
         super().__init__()
         if isinstance(n_blocks_per_stage, int):
@@ -205,9 +207,20 @@ class ResidualUNet(nn.Module):
         else:
             raise ValueError(f"Unsupported decoder type: {decoder_type}. Choose from 'standard', 'trilinear'")
 
+        self.output_activation = output_activation
+        self.output_range = output_range
+
+        if output_activation is not None:
+            print("activation:", output_activation, output_range)
+
     def forward(self, x):
-        skips = self.encoder(x)
-        return self.decoder(skips)
+        x = self.decoder(self.encoder(x))
+        if self.output_activation == "tanh":
+            x = torch.tanh(x)
+            min_val, max_val = self.output_range
+            # scale from [-1,1] -> [min,max]
+            x = x * (max_val - min_val) / 2 + (max_val + min_val) / 2
+        return x
 
     def compute_conv_feature_map_size(self, input_size):
         assert len(input_size) == convert_conv_op_to_dim(self.encoder.conv_op), "just give the image size without color/feature channels or " \
